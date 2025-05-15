@@ -4,10 +4,13 @@
 // #include <Keypad.h>
 
 // initialize pins
-#define BUTTON_PIN PC3 // A3 pin on Arduino Uno
+#define BUTTON_PIN A3
+#define BUTTON_BIT PC3 // A3 pin on Arduino Uno
 #define BUZZER_PIN 10
 
 volatile bool buttonPressed = false;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 50;
 
 // initialize LCD
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -27,25 +30,28 @@ void setup() {
 
   pinMode(BUZZER_PIN, OUTPUT);
 
-  DDRC &= ~(1 << BUTTON_PIN); // Set BUTTON_PIN as input
-  PORTC |= (1 << BUTTON_PIN); // Enable pull-up resistor
+  DDRC &= ~(1 << BUTTON_BIT); // Set BUTTON_BIT as input
+  PORTC |= (1 << BUTTON_BIT); // Enable pull-up resistor
 
   PCICR |= (1 << PCIE1); // Enable pin change interrupt for PCINT0
-  PCMSK1 |= (1 << PCINT11); // Enable interrupt for BUTTON_PIN
+  PCMSK1 |= (1 << PCINT11); // Enable interrupt for BUTTON_BIT
   sei(); // Enable global interrupts
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   if (buttonPressed) {
-    tone(BUZZER_PIN, wrongSound, buzzerDuration);
+    unsigned long currentTime = millis();
+    if (currentTime - lastDebounceTime > debounceDelay) {
+      tone(BUZZER_PIN, wrongSound, buzzerDuration);
+      lastDebounceTime = currentTime;
+    }
     buttonPressed = false;
   }
 }
 
 ISR(PCINT1_vect) {
-  if (!(PINC & (1 << BUTTON_PIN))) { // Check if button is pressed
+  if (!(PINC & (1 << BUTTON_BIT))) { // Check if button is pressed
     buttonPressed = true;
-    delay(50); // Debounce delay
   }
 }
