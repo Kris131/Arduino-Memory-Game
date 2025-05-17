@@ -41,6 +41,7 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
 const int wrongSound = 300;
 const int rightSound = 1000;
+const int keyPressSound = 500;
 const int buzzerDuration = 200;
 
 // initialize the easy/hard difficulty arrays
@@ -55,6 +56,7 @@ void sendToShiftRegister(uint16_t data);
 void printIdleMessage();
 void printWrongMessage();
 void printCorrectMessage();
+void printNextLevelMessage();
 
 void setup() {
   // put your setup code here, to run once:
@@ -98,6 +100,8 @@ void loop() {
       char keyPressed = keypad.waitForKey();
       uint16_t keyInt = keyPressed - '0';
 
+      tone(BUZZER_PIN, keyPressSound, 100);
+
       if (keyInt != easy[i] + 1) {
         tone(BUZZER_PIN, wrongSound, buzzerDuration);
         printWrongMessage();
@@ -125,10 +129,11 @@ void loop() {
         currLength++;
         easy[currLength - 1] = random(0, 8);
 
+        printNextLevelMessage();
+
         break;
       }
     }
-
     return;
   }
 
@@ -154,6 +159,9 @@ void loop() {
   }
 
   char key = keypad.getKey();
+  if (key != NO_KEY) {
+    tone(BUZZER_PIN, keyPressSound, 100);
+  }
   // if (key) {
   //   lcd.clear();
   //   lcd.setCursor(0, 0);
@@ -205,13 +213,16 @@ void printIdleMessage() {
 void printWrongMessage() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Wrong! Press 0 to play again");
+  lcd.print("Wrong!");
   lcd.setCursor(0, 1);
   lcd.print("HS: ");
   lcd.print(highScore);
   lcd.print(" ");
   lcd.print("S: ");
   lcd.print(currLength - 1);
+  delay(2000);
+  lcd.setCursor(0, 0);
+  lcd.print("Press 0 to start");
 }
 
 void printCorrectMessage() {
@@ -224,6 +235,25 @@ void printCorrectMessage() {
   lcd.print(" ");
   lcd.print("S: ");
   lcd.print(currLength);
+  delay(2000);
+}
+
+void printNextLevelMessage() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Next level starting in:");
+  lcd.setCursor(0, 1);
+  lcd.print("3");
+  delay(1000);
+  lcd.setCursor(0, 1);
+  lcd.print("2");
+  delay(1000);
+  lcd.setCursor(0, 1);
+  lcd.print("1");
+  delay(1000);
+  lcd.setCursor(0, 1);
+  lcd.print("Go!");
+  delay(1000);
 }
 
 /*
