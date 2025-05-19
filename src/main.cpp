@@ -15,7 +15,7 @@ volatile bool buttonPressed = false;
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 50;
 
-
+volatile bool powerOn = true;
 volatile bool idleState = true;
 int ledIndex = 0;
 unsigned long lastLedUpdateTime = 0;
@@ -81,7 +81,7 @@ void setup() {
 
   sendToShiftRegister(0);
 
-  randomSeed(analogRead(A4));
+  randomSeed(analogRead(A0));
   for (int i = 0; i < currLength; i++) {
     easy[i] = random(0, 8);
     hard[i] = random(0, 8);
@@ -89,6 +89,18 @@ void setup() {
 }
 
 void loop() {
+  if (!powerOn) {
+    char key = keypad.getKey();
+    if (key == '*') {
+      tone(BUZZER_PIN, keyPressSound, 100);
+      powerOn = true;
+      lcd.backlight();
+      printIdleMessage();
+    }
+
+    return;
+  }
+
   if (!idleState) {
     for (int i = 0; i < currLength; i++) {
       sendToShiftRegister(0);
@@ -186,6 +198,13 @@ void loop() {
     if (!idleState) {
       printLevelMessage();
     }
+  } else if (key == '*') {
+    powerOn = false;
+    idleState = true;
+    ledIndex = 0;
+    sendToShiftRegister(0);
+    lcd.clear();
+    lcd.noBacklight();
   }
 
   if (idleState) {
