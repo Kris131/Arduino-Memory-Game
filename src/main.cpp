@@ -11,15 +11,20 @@
 #define SR_LATCH_PIN 12
 #define SR_CLK_PIN 13
 
+// button variables
 volatile bool buttonPressed = false;
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 50;
 
+// system state variables
 volatile bool powerOn = true;
 volatile bool idleState = true;
+
+// LED idle variables
 int ledIndex = 0;
 unsigned long lastLedUpdateTime = 0;
 const unsigned long ledInterval = 500;
+
 int difficulty = 0;
 
 // initialize LCD
@@ -34,11 +39,12 @@ char keys[ROWS][COLS] = {
   {'7','8','9','C'},
   {'*','0','#','D'}
 };
-byte rowPins[ROWS] = {9, 8, 7, 6};  // Adjust to your wiring
-byte colPins[COLS] = {5, 4, 3, 2};  // Adjust to your wiring
+byte rowPins[ROWS] = {9, 8, 7, 6}; 
+byte colPins[COLS] = {5, 4, 3, 2};
 
 Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
 
+// define buzzer frequencies
 const int wrongSound = 300;
 const int rightSound = 1000;
 const int keyPressSound = 500;
@@ -67,14 +73,14 @@ void setup() {
 
   pinMode(BUZZER_PIN, OUTPUT);
 
-  DDRC &= ~(1 << BUTTON_BIT); // Set BUTTON_BIT as input
-  PORTC |= (1 << BUTTON_BIT); // Enable pull-up resistor
+  DDRC &= ~(1 << BUTTON_BIT); // set as input
+  PORTC |= (1 << BUTTON_BIT); // enable pull-up resistor
 
-  PCICR |= (1 << PCIE1); // Enable pin change interrupt for PCINT0
-  PCMSK1 |= (1 << PCINT11); // Enable interrupt for BUTTON_BIT
-  sei(); // Enable global interrupts
+  PCICR |= (1 << PCIE1); // enable pin change interrupt
+  PCMSK1 |= (1 << PCINT11); // enable interrupt for BUTTON_BIT
+  sei(); // enable global interrupts
 
-  // Initialize the shift register pins
+  // initialize the shift register pins
   pinMode(SR_DATA_PIN, OUTPUT);
   pinMode(SR_LATCH_PIN, OUTPUT);
   pinMode(SR_CLK_PIN, OUTPUT);
@@ -219,17 +225,17 @@ void loop() {
 }
 
 ISR(PCINT1_vect) {
-  if (!(PINC & (1 << BUTTON_BIT))) { // Check if button is pressed
+  if (!(PINC & (1 << BUTTON_BIT))) { // check if button is pressed
     buttonPressed = true;
   }
 }
 
 // functions
 void sendToShiftRegister(uint16_t data) {
-  digitalWrite(SR_LATCH_PIN, LOW); // Set latch low to start sending data
-  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, highByte(data)); // Send high byte
-  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, lowByte(data)); // Send low byte
-  digitalWrite(SR_LATCH_PIN, HIGH); // Set latch high to finish sending data
+  digitalWrite(SR_LATCH_PIN, LOW); // set latch low to start sending data
+  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, highByte(data)); // send high byte
+  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, lowByte(data)); // send low byte
+  digitalWrite(SR_LATCH_PIN, HIGH); // set latch high to finish sending data
 }
 
 void printIdleMessage() {
