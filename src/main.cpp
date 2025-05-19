@@ -47,7 +47,8 @@ const int buzzerDuration = 200;
 // initialize the easy/hard difficulty arrays
 const int minLength = 4;
 int currLength = 4;
-int highScore = 0;
+int easyHighScore = 0;
+int hardHighScore = 0;
 uint16_t easy[32];
 uint16_t hard[32];
 
@@ -56,7 +57,7 @@ void sendToShiftRegister(uint16_t data);
 void printIdleMessage();
 void printWrongMessage();
 void printCorrectMessage();
-void printNextLevelMessage();
+void printLevelMessage();
 
 void setup() {
   // put your setup code here, to run once:
@@ -80,6 +81,7 @@ void setup() {
 
   sendToShiftRegister(0);
 
+  randomSeed(analogRead(A4));
   for (int i = 0; i < currLength; i++) {
     easy[i] = random(0, 8);
     hard[i] = random(0, 8);
@@ -91,7 +93,11 @@ void loop() {
     for (int i = 0; i < currLength; i++) {
       sendToShiftRegister(0);
       delay(300);
-      sendToShiftRegister(1 << easy[i]);
+      if (difficulty == 0) {
+        sendToShiftRegister(1 << easy[i]);
+      } else {
+        sendToShiftRegister(1 << hard[i]);
+      }
       delay(300);
     }
     sendToShiftRegister(0);
@@ -102,35 +108,48 @@ void loop() {
 
       tone(BUZZER_PIN, keyPressSound, 100);
 
-      if (keyInt != easy[i] + 1) {
+      if (((keyInt != easy[i] + 1) && (difficulty == 0)) ||
+          ((keyInt != hard[i] + 1) && (difficulty == 1))) {
         tone(BUZZER_PIN, wrongSound, buzzerDuration);
         printWrongMessage();
 
         currLength = minLength;
 
         for (int j = 0; j < currLength; j++) {
-          easy[j] = random(0, 8);
+          if (difficulty == 0) {
+            easy[j] = random(0, 8);
+          } else {
+            hard[j] = random(0, 8);
+          }
         }
 
         idleState = true;
         ledIndex = 0;
         sendToShiftRegister(0);
+        printIdleMessage();
         break;
       }
 
       if (i == currLength - 1) {
         tone(BUZZER_PIN, rightSound, buzzerDuration);
-        printCorrectMessage();
 
-        if (currLength > highScore) {
-          highScore = currLength;
+        if (currLength > easyHighScore && difficulty == 0) {
+          easyHighScore = currLength;
+        } else if (currLength > hardHighScore && difficulty == 1) {
+          hardHighScore = currLength;
         }
 
+        printCorrectMessage();
+
         currLength++;
-        easy[currLength - 1] = random(0, 8);
-
-        printNextLevelMessage();
-
+        if (difficulty == 0) {
+          easy[currLength - 1] = random(0, 8);
+        } else {
+          for (int j = 0; j < currLength; j++) {
+            hard[j] = random(0, 8);
+          }
+        }
+        printLevelMessage();
         break;
       }
     }
@@ -143,10 +162,6 @@ void loop() {
     if (currentTime - lastDebounceTime > debounceDelay) {
       difficulty = 1 - difficulty;
       printIdleMessage();
-      lcd.setCursor(0, 1);
-      lcd.print("Difficulty: ");
-      lcd.print(difficulty ? "Easy" : "Hard");
-      // tone(BUZZER_PIN, wrongSound, buzzerDuration);
       lastDebounceTime = currentTime;
 
       currLength = minLength;
@@ -162,18 +177,15 @@ void loop() {
   if (key != NO_KEY) {
     tone(BUZZER_PIN, keyPressSound, 100);
   }
-  // if (key) {
-  //   lcd.clear();
-  //   lcd.setCursor(0, 0);
-  //   lcd.print("You pressed:");
-  //   lcd.setCursor(0, 1);
-  //   lcd.print(key);
-  // }
 
   if (key == '0') {
     idleState = !idleState;
     ledIndex = 0;
     sendToShiftRegister(0);
+
+    if (!idleState) {
+      printLevelMessage();
+    }
   }
 
   if (idleState) {
@@ -206,8 +218,9 @@ void printIdleMessage() {
   lcd.setCursor(0, 0);
   lcd.print("Press 0 to start");
   lcd.setCursor(0, 1);
+  lcd.print(difficulty == 0 ? "Easy " : "Hard ");
   lcd.print("HS: ");
-  lcd.print(highScore);
+  lcd.print(difficulty == 0 ? easyHighScore : hardHighScore);
 }
 
 void printWrongMessage() {
@@ -216,32 +229,30 @@ void printWrongMessage() {
   lcd.print("Wrong!");
   lcd.setCursor(0, 1);
   lcd.print("HS: ");
-  lcd.print(highScore);
+  lcd.print(difficulty == 0 ? easyHighScore : hardHighScore);
   lcd.print(" ");
   lcd.print("S: ");
   lcd.print(currLength - 1);
   delay(2000);
-  lcd.setCursor(0, 0);
-  lcd.print("Press 0 to start");
 }
 
 void printCorrectMessage() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Correct! Next lvl");
+  lcd.print("Correct!");
   lcd.setCursor(0, 1);
   lcd.print("HS: ");
-  lcd.print(highScore);
+  lcd.print(difficulty == 0 ? easyHighScore : hardHighScore);
   lcd.print(" ");
   lcd.print("S: ");
   lcd.print(currLength);
   delay(2000);
 }
 
-void printNextLevelMessage() {
+void printLevelMessage() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print("Next level starting in:");
+  lcd.print("Level starting:");
   lcd.setCursor(0, 1);
   lcd.print("3");
   delay(1000);
@@ -257,11 +268,7 @@ void printNextLevelMessage() {
 }
 
 /*
-TODO: make the user watch the sequence
-print on lcd 'Start'
-the user will input n numbers
-check the input with the sequence
-if an input is wrong, play a sound and a message on lcd with 'press 0 to start again'
-if the input is correct, play a sound and print 'correct' and add 1 to the sequence
-if easy add one led, if hard redo the sequence with new numbers with one more led
+TODO:
+improve debouncer
+add one button to power on/off
 */
