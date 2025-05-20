@@ -13,8 +13,8 @@
 
 // button variables
 volatile bool buttonPressed = false;
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 50;
+volatile unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 150;
 
 // system state variables
 volatile bool powerOn = true;
@@ -176,18 +176,16 @@ void loop() {
 
   // put your main code here, to run repeatedly:
   if (buttonPressed) {
-    unsigned long currentTime = millis();
-    if (currentTime - lastDebounceTime > debounceDelay) {
-      difficulty = 1 - difficulty;
-      printIdleMessage();
-      lastDebounceTime = currentTime;
 
-      currLength = minLength;
-      for (int i = 0; i < currLength; i++) {
-        easy[i] = random(0, 8);
-        hard[i] = random(0, 8);
-      }
+    difficulty = 1 - difficulty;
+    printIdleMessage();
+
+    currLength = minLength;
+    for (int i = 0; i < currLength; i++) {
+      easy[i] = random(0, 8);
+      hard[i] = random(0, 8);
     }
+
     buttonPressed = false;
   }
 
@@ -224,17 +222,22 @@ void loop() {
   }
 }
 
+// interrupt function for the button
 ISR(PCINT1_vect) {
+  unsigned long currentTime = millis();
   if (!(PINC & (1 << BUTTON_BIT))) { // check if button is pressed
-    buttonPressed = true;
+    if (currentTime - lastDebounceTime > debounceDelay) {
+      buttonPressed = true;
+      lastDebounceTime = currentTime;
+    }
   }
 }
 
 // functions
 void sendToShiftRegister(uint16_t data) {
   digitalWrite(SR_LATCH_PIN, LOW); // set latch low to start sending data
-  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, highByte(data)); // send high byte
-  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, lowByte(data)); // send low byte
+  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, highByte(data)); // send upper 8 bits
+  shiftOut(SR_DATA_PIN, SR_CLK_PIN, MSBFIRST, lowByte(data)); // send lower 8 bits
   digitalWrite(SR_LATCH_PIN, HIGH); // set latch high to finish sending data
 }
 
