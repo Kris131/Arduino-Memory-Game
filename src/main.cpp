@@ -13,6 +13,7 @@
 
 // button variables
 volatile bool buttonPressed = false;
+volatile bool buttonWasReleased = true;
 volatile unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 150;
 
@@ -225,11 +226,15 @@ void loop() {
 // interrupt function for the button
 ISR(PCINT1_vect) {
   unsigned long currentTime = millis();
-  if (!(PINC & (1 << BUTTON_BIT))) { // check if button is pressed
-    if (currentTime - lastDebounceTime > debounceDelay) {
+  bool isPressed = !(PINC & (1 << BUTTON_BIT));
+  if (isPressed) {
+    if (buttonWasReleased && (currentTime - lastDebounceTime > debounceDelay)) {
       buttonPressed = true;
       lastDebounceTime = currentTime;
+      buttonWasReleased = false;
     }
+  } else {
+    buttonWasReleased = true;
   }
 }
 
@@ -295,8 +300,3 @@ void printLevelMessage() {
   delay(1000);
 }
 
-/*
-TODO:
-improve debouncer
-add one button to power on/off
-*/
