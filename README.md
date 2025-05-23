@@ -8,3 +8,6 @@ It was implemented using an Arduino Uno R3 board, a normal sized breadboard and 
   - 9x red LEDs
   - button
 
+<img src="https://github.com/Kris131/Arduino-Memory-Game/blob/main/images/raw_circuit.jpg" alt="Circuit" width=300/> <img src="https://github.com/Kris131/Arduino-Memory-Game/blob/main/images/memory_game.jpg" width=300/>
+
+Regarding software, the code was written in VSCode, using the PlatformIO extension.
